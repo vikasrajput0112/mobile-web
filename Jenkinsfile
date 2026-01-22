@@ -5,7 +5,7 @@ pipeline {
   IMAGE = "ghcr.io/vikasrajput0112/mobile-web:${BUILD_NUMBER}"
 }
 
-  }
+  
 
   stages {
     stage('Checkout') { steps { checkout scm } }
