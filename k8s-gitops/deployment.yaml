@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mobile-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mobile-web
+  template:
+    metadata:
+      labels:
+        app: mobile-web
+    spec:
+      containers:
+      - name: mobile-web
+        image: ghcr.io/ORG/mobile-web:1
+        ports:
+        - containerPort: 80
