@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mobile-web
+spec:
+  source:
+    repoURL: https://github.com/ORG/mobile-gitops.git
+    path: k8s-gitops
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mobile
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
