@@ -2,14 +2,19 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: mobile-web
+  namespace: argocd
 spec:
+  project: default   # 👈 THIS LINE IS REQUIRED
+
   source:
-    repoURL: https://github.com/ORG/mobile-gitops.git
-    path: k8s-gitops
+    repoURL: https://github.com/vikasrajput0112/mobile-web.git
     targetRevision: main
+    path: k8s-gitops
+
   destination:
     server: https://kubernetes.default.svc
-    namespace: mobile
+    namespace: mobile-app
+
   syncPolicy:
     automated:
       prune: true
