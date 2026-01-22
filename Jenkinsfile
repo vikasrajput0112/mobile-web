@@ -1,8 +1,10 @@
 pipeline {
   agent any
 
-  environment {
-    IMAGE = "ghcr.io/ORG/mobile-web:${BUILD_NUMBER}"
+    environment {
+  IMAGE = "ghcr.io/vikasrajput0112/mobile-web:${BUILD_NUMBER}"
+}
+
   }
 
   stages {
