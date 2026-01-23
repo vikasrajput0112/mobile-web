@@ -33,12 +33,14 @@ pipeline {
 
       trivy image $IMAGE \
         --severity HIGH,CRITICAL \
-        --format html \
-        -o trivy-report.html \
+        --format template \
+        --template @/usr/local/share/trivy/templates/html.tpl \
+        --output trivy-report.html \
         --exit-code 0
     '''
   }
 }
+
 
 
 
