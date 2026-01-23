@@ -3,7 +3,6 @@ pipeline {
 
   environment {
     IMAGE = "ghcr.io/vikasrajput0112/mobile-web:${BUILD_NUMBER}"
-    TRIVY_REPORT = "trivy-report.html"
   }
 
   stages {
@@ -16,34 +15,35 @@ pipeline {
 
     stage('Build App') {
       steps {
-        sh 'npm install && npm run build'
+        sh '''
+          npm install
+          npm run build
+        '''
       }
     }
 
     stage('Docker Build') {
       steps {
-        sh 'docker build -t $IMAGE .'
+        sh '''
+          docker build -t $IMAGE .
+        '''
       }
     }
 
     stage('Trivy Image Scan (HTML Report)') {
-  steps {
-    sh '''
-      echo "🔍 Running Trivy scan on $IMAGE"
+      steps {
+        sh '''
+          echo "🔍 Running Trivy scan on $IMAGE"
 
-      trivy image $IMAGE \
-        --severity HIGH,CRITICAL \
-        --format template \
-        --template @/usr/local/share/trivy/templates/html.tpl \
-        --output trivy-report.html \
-        --exit-code 0
-    '''
-  }
-}
-
-
-
-
+          trivy image $IMAGE \
+            --severity HIGH,CRITICAL \
+            --format template \
+            --template @/usr/local/share/trivy/templates/html.tpl \
+            -o trivy-report.html \
+            --exit-code 0
+        '''
+      }
+    }
 
     stage('Push Image') {
       steps {
@@ -60,11 +60,8 @@ pipeline {
   post {
     always {
       archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
-      echo "✅ Trivy report archived: trivy-report.html"
-    }
-
-    success {
-      echo "🎉 Build, Scan, and Push successful!"
+      echo "✅ Pipeline completed for image: $IMAGE"
+      echo "📄 Trivy HTML report archived successfully"
     }
   }
 }
