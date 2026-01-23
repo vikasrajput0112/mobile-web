@@ -27,20 +27,20 @@ pipeline {
     }
 
     stage('Trivy Image Scan (HTML Report)') {
-      steps {
-        sh '''
-          echo "🔍 Running Trivy scan on $IMAGE"
+  steps {
+    sh '''
+      echo "🔍 Running Trivy scan on $IMAGE"
 
-          trivy image \
-            --severity HIGH,CRITICAL \
-            --format template \
-            --template "@/var/lib/jenkins/trivy/html.tpl" \
-            --output $TRIVY_REPORT \
-            --exit-code 0 \
-            $IMAGE
-        '''
-      }
-    }
+      trivy image $IMAGE \
+        --severity HIGH,CRITICAL \
+        --format template \
+        --template "@/var/lib/jenkins/trivy/html.tpl" \
+        --exit-code 0 \
+        --output trivy-report.html
+    '''
+  }
+}
+
 
     stage('Push Image') {
       steps {
