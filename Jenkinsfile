@@ -34,7 +34,7 @@ pipeline {
           trivy image \
             --severity HIGH,CRITICAL \
             --format template \
-            --template "@\/var\/lib\/jenkins\/trivy\/html.tpl" \
+            --template "@/var/lib/jenkins/trivy/html.tpl" \
             --output $TRIVY_REPORT \
             --exit-code 0 \
             $IMAGE
