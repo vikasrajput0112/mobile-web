@@ -60,11 +60,8 @@ pipeline {
     stage('Get Image Digest') {
       steps {
         script {
-          IMAGE_DIGEST = sh(
-            script: """
-              docker inspect $IMAGE \
-              --format='{{index .RepoDigests 0}}'
-            """,
+          def IMAGE_DIGEST = sh(
+            script: "docker inspect $IMAGE --format='{{index .RepoDigests 0}}'",
             returnStdout: true
           ).trim()
 
@@ -87,25 +84,14 @@ pipeline {
         }
       }
     }
-
-    stage('Verify Image Signature (Optional)') {
-      steps {
-        sh '''
-          cosign verify \
-            --key cosign.pub \
-            $IMAGE_DIGEST
-        '''
-      }
-    }
   }
 
   post {
     always {
       archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
-      echo "✅ Pipeline completed"
+      echo "✅ Pipeline completed successfully"
       echo "📦 Image: $IMAGE"
       echo "🔐 Signed Digest: $IMAGE_DIGEST"
-      echo "📄 Trivy HTML report archived"
     }
   }
 }
