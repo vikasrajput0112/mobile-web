@@ -6,7 +6,7 @@ const Home = () => {
       <section className="bg-gradient-to-r from-pink-200 to-pink-100 py-20 px-6 text-center">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-bold text-pink-700 mb-6">
-            Smart Mobile Solutions for Modern Life
+            Smart Mobile Solutions for Modern Life-Test
           </h1>
           <p className="text-gray-700 text-lg mb-8">
             Explore the latest smartphones, premium accessories, and reliable
