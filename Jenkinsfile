@@ -3,6 +3,7 @@ pipeline {
 
   environment {
     IMAGE = "ghcr.io/vikasrajput0112/mobile-web:${BUILD_NUMBER}"
+    COSIGN_EXPERIMENTAL = "1"
   }
 
   stages {
@@ -55,13 +56,56 @@ pipeline {
         }
       }
     }
+
+    stage('Get Image Digest') {
+      steps {
+        script {
+          IMAGE_DIGEST = sh(
+            script: """
+              docker inspect $IMAGE \
+              --format='{{index .RepoDigests 0}}'
+            """,
+            returnStdout: true
+          ).trim()
+
+          env.IMAGE_DIGEST = IMAGE_DIGEST
+          echo "🔐 Image Digest: ${IMAGE_DIGEST}"
+        }
+      }
+    }
+
+    stage('Cosign Sign Image') {
+      steps {
+        withCredentials([
+          file(credentialsId: 'cosign-key', variable: 'COSIGN_KEY'),
+          string(credentialsId: 'cosign-password', variable: 'COSIGN_PASSWORD')
+        ]) {
+          sh '''
+            export COSIGN_PASSWORD=$COSIGN_PASSWORD
+            cosign sign --key $COSIGN_KEY $IMAGE_DIGEST
+          '''
+        }
+      }
+    }
+
+    stage('Verify Image Signature (Optional)') {
+      steps {
+        sh '''
+          cosign verify \
+            --key cosign.pub \
+            $IMAGE_DIGEST
+        '''
+      }
+    }
   }
 
   post {
     always {
       archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
-      echo "✅ Pipeline completed for image: $IMAGE"
-      echo "📄 Trivy HTML report archived successfully"
+      echo "✅ Pipeline completed"
+      echo "📦 Image: $IMAGE"
+      echo "🔐 Signed Digest: $IMAGE_DIGEST"
+      echo "📄 Trivy HTML report archived"
     }
   }
 }
