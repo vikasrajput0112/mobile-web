@@ -2,8 +2,10 @@ pipeline {
   agent any
 
   environment {
-    IMAGE = "ghcr.io/vikasrajput0112/mobile-web:${BUILD_NUMBER}"
+    IMAGE_REPO = "ghcr.io/vikasrajput0112/mobile-web"
+    IMAGE = "${IMAGE_REPO}:${BUILD_NUMBER}"
     COSIGN_EXPERIMENTAL = "1"
+    KEEP_IMAGES = "5"
   }
 
   stages {
@@ -34,8 +36,6 @@ pipeline {
     stage('Trivy Image Scan (HTML Report)') {
       steps {
         sh '''
-          echo "🔍 Running Trivy scan on $IMAGE"
-
           trivy image $IMAGE \
             --severity HIGH,CRITICAL \
             --format template \
@@ -86,22 +86,30 @@ pipeline {
         }
       }
     }
+
+    stage('Cleanup Old Local Images (Keep Latest 5)') {
+      steps {
+        sh '''
+          echo "🧹 Keeping only latest $KEEP_IMAGES images for $IMAGE_REPO"
+
+          docker images $IMAGE_REPO \
+            --format "{{.Repository}}:{{.Tag}} {{.CreatedAt}}" | \
+            sort -rk2 | \
+            awk '{print $1}' | \
+            tail -n +$((KEEP_IMAGES + 1)) | \
+            xargs -r docker rmi -f || true
+        '''
+      }
+    }
   }
 
   post {
     always {
-
-      echo "🧹 Cleaning up dangling Docker images"
-      sh '''
-        docker image prune -f
-      '''
-
       archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
-
-      echo "✅ Pipeline completed successfully"
-      echo "📦 Image: $IMAGE"
-      echo "🔐 Signed Digest: $IMAGE_DIGEST"
-      echo "📄 Trivy HTML report archived"
+      echo "✅ Pipeline completed"
+      echo "📦 Image pushed: $IMAGE"
+      echo "🔐 Signed digest: $IMAGE_DIGEST"
+      echo "🧹 Local images cleaned (kept latest $KEEP_IMAGES)"
     }
   }
 }
