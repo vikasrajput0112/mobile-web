@@ -48,7 +48,9 @@ pipeline {
 
     stage('Push Image') {
       steps {
-        withCredentials([string(credentialsId: 'github-jenkins', variable: 'TOKEN')]) {
+        withCredentials([
+          string(credentialsId: 'github-jenkins', variable: 'TOKEN')
+        ]) {
           sh '''
             echo $TOKEN | docker login ghcr.io -u USER --password-stdin
             docker push $IMAGE
@@ -88,10 +90,18 @@ pipeline {
 
   post {
     always {
+
+      echo "🧹 Cleaning up dangling Docker images"
+      sh '''
+        docker image prune -f
+      '''
+
       archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
+
       echo "✅ Pipeline completed successfully"
       echo "📦 Image: $IMAGE"
       echo "🔐 Signed Digest: $IMAGE_DIGEST"
+      echo "📄 Trivy HTML report archived"
     }
   }
 }
