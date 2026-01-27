@@ -3,9 +3,15 @@ pipeline {
 
   environment {
     IMAGE_REPO = "ghcr.io/vikasrajput0112/mobile-web"
-    IMAGE      = "${IMAGE_REPO}:${BUILD_NUMBER}"
-    KEEP_IMAGES = "5"
+    IMAGE_TAG  = "${GIT_COMMIT}"
+    IMAGE      = "${IMAGE_REPO}:${IMAGE_TAG}"
+
     COSIGN_EXPERIMENTAL = "1"
+    KEEP_IMAGES = "5"
+  }
+
+  triggers {
+    githubPush()
   }
 
   stages {
@@ -33,22 +39,18 @@ pipeline {
       }
     }
 
-    stage('Trivy Image Scan (HTML Report)') {
+    stage('Trivy Scan') {
       steps {
         sh '''
-          echo "🔍 Running Trivy scan on $IMAGE"
-
           trivy image $IMAGE \
             --severity HIGH,CRITICAL \
-            --format template \
-            --template @/usr/local/share/trivy/templates/html.tpl \
-            -o trivy-report.html \
-            --exit-code 0
+            --exit-code 0 \
+            --format table
         '''
       }
     }
 
-    stage('Push Image') {
+    stage('Push Image to GHCR') {
       steps {
         withCredentials([
           string(credentialsId: 'github-jenkins', variable: 'TOKEN')
@@ -64,13 +66,10 @@ pipeline {
     stage('Get Image Digest') {
       steps {
         script {
-          def IMAGE_DIGEST = sh(
+          env.IMAGE_DIGEST = sh(
             script: "docker inspect $IMAGE --format='{{index .RepoDigests 0}}'",
             returnStdout: true
           ).trim()
-
-          env.IMAGE_DIGEST = IMAGE_DIGEST
-          echo "🔐 Image Digest: ${IMAGE_DIGEST}"
         }
       }
     }
@@ -89,32 +88,33 @@ pipeline {
       }
     }
 
-    stage('Cleanup Local Docker Images') {
+    stage('Update GitOps Repo') {
       steps {
-        sh '''
-          echo "🧹 Removing dangling images (<none>:<none>)"
-          docker image prune -f
+        withCredentials([
+          string(credentialsId: 'github-jenkins', variable: 'TOKEN')
+        ]) {
+          sh '''
+            rm -rf gitops
+            git clone https://$TOKEN@github.com/vikasrajput0112/mobile-web-gitops.git gitops
+            cd gitops
 
-          echo "🧹 Keeping only latest $KEEP_IMAGES tagged images for $IMAGE_REPO"
-          docker images $IMAGE_REPO \
-            --format "{{.Repository}}:{{.Tag}} {{.CreatedAt}}" | \
-            sort -rk2 | \
-            awk '{print $1}' | \
-            tail -n +$((KEEP_IMAGES + 1)) | \
-            xargs -r docker rmi -f || true
-        '''
+            sed -i "s|image: .*|image: $IMAGE|g" deployment.yaml
+
+            git config user.name "jenkins"
+            git config user.email "jenkins@ci"
+            git add deployment.yaml
+            git commit -m "Deploy mobile-web $IMAGE_TAG"
+            git push origin main
+          '''
+        }
       }
     }
   }
 
   post {
-    always {
-      archiveArtifacts artifacts: 'trivy-report.html', fingerprint: true
-
-      echo "✅ Pipeline completed successfully"
-      echo "📦 Image pushed: $IMAGE"
-      echo "🔐 Signed digest: $IMAGE_DIGEST"
-      echo "🧹 Local cleanup done (kept latest $KEEP_IMAGES images)"
+    success {
+      echo "✅ Image built, signed & deployed automatically"
+      echo "📦 $IMAGE"
     }
   }
 }
